@@ -11,22 +11,39 @@ CKnave = Symbol("C is a Knave")
 
 # Puzzle 0
 # A says "I am both a knight and a knave."
-knowledge0 = And(AKnight, AKnave
-    # TODO
+knowledge0 = And(
+    # background knowledge
+    Or(AKnight, AKnave),
+    Not(And(AKnight, AKnave)),
+    # Logic for puzzle
+    Biconditional(AKnight, And(AKnight, AKnave)),
 )
 
 # Puzzle 1
 # A says "We are both knaves."
 # B says nothing.
-knowledge1 = And(AKnave,BKnave
-    # TODO
+knowledge1 = And(
+    # background knowledge
+    Or(AKnight, AKnave),
+    Or(BKnight,BKnave),
+    Not(And(AKnight,AKnave)),
+    Not(And(BKnight,BKnave)),
+    # Logic for puzzle
+    Biconditional(AKnight,And(AKnave,BKnave)),
 )
 
 # Puzzle 2
 # A says "We are the same kind."
 # B says "We are of different kinds."
 knowledge2 = And(
-    # TODO
+    # background knowledge
+    Or(AKnight, AKnave),
+    Or(BKnight,BKnave),
+    Not(And(AKnight,AKnave)),
+    Not(And(BKnight,BKnave)),
+    # Logic for puzzle
+    Biconditional(AKnight,Or(And(AKnave,BKnave), And(AKnight,BKnight))),
+    Biconditional(BKnight,Or(And(AKnave,BKnight), And(AKnave,BKnave))),
 )
 
 # Puzzle 3
@@ -35,7 +52,21 @@ knowledge2 = And(
 # B says "C is a knave."
 # C says "A is a knight."
 knowledge3 = And(
-    # TODO
+    #background knowledge
+    Or(AKnight, AKnave),
+    Or(BKnight,BKnave),
+    Or(CKnight,CKnave),
+    Not(And(AKnight,AKnave)),
+    Not(And(BKnight,BKnave)),
+    Not(And(CKnight,CKnave)),
+    # Logic for puzzle
+    Biconditional(AKnight,Or(AKnight,AKnave)),
+    Biconditional(AKnave,BKnight),
+    Biconditional(AKnight,BKnave),
+    Biconditional(BKnight,CKnave),
+    Biconditional(BKnave,CKnight),
+    Biconditional(CKnight,AKnight),
+    Biconditional(CKnave,AKnave),
 )
 
 
