@@ -94,6 +94,8 @@ class Sentence():
     def __init__(self, cells, count):
         self.cells = set(cells)
         self.count = count
+        self.mines_found = set()
+        self.saves_found = set()
 
     def __eq__(self, other):
         return self.cells == other.cells and self.count == other.count
@@ -105,27 +107,35 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        raise NotImplementedError
+      
+        return self.mines_found
+        #raise NotImplementedError
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        raise NotImplementedError
+        return self.saves_found
+        #raise NotImplementedError
 
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+            self.count -= 1
+            self.mines_found.add(cell)
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+            self.saves_found.add(cell)
 
 
 class MinesweeperAI():
@@ -145,9 +155,12 @@ class MinesweeperAI():
         # Keep track of cells known to be safe or mines
         self.mines = set()
         self.safes = set()
-
+       
         # List of sentences about the game known to be true
         self.knowledge = []
+
+        # All cells in the game
+        self.cells = set(itertools.product(range(height), range(width)))
 
     def mark_mine(self, cell):
         """
@@ -182,8 +195,29 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
-
+        # 1) mark the cell as a move that has been made
+        self.moves_made.add(cell)
+        # 2) mark the cell as safe
+        self.mark_safe(cell)
+        # 3) add a new sentence to the AI's knowledge base based on the value of `cell` and `count`
+        neighbors = set()
+        saveCells = set()
+        count_temp = count
+        neighbors = self.return_neighbours(cell)
+        for neighbor in neighbors:
+            if neighbor in self.mines:
+                count_temp -= 1
+            elif neighbor in self.safes:
+                continue
+            else:
+                saveCells.add(neighbor)   
+        new_sentence = Sentence(saveCells, count_temp)
+        if new_sentence not in self.knowledge and len(saveCells) > 0:
+            self.knowledge.append(new_sentence)
+        # 4) mark any additional cells as safe or as mines if it can be concluded based on the AI's knowledge base
+        self.update_knowledge()
+        # 5) add any new sentences to the AI's knowledge base if they can be inferred from existing knowledge
+        self.infer_new_sentences()
     def make_safe_move(self):
         """
         Returns a safe cell to choose on the Minesweeper board.
@@ -193,8 +227,52 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
-
+        for safe in self.safes:
+            if safe not in self.moves_made:
+                return safe
+    
+        return None
+    
+    def return_neighbours(self, cell):
+        """
+        Returns a set of all neighboring cells of a given cell.
+        """
+        neighbors = set()
+        for rows in range(self.height):
+            for cols in range(self.width):
+                if (rows, cols) != cell:
+                    if abs(rows - cell[0]) <= 1 and abs(cols - cell[1]) <= 1:
+                        neighbors.add((rows, cols))
+        return neighbors
+    def update_knowledge(self):
+        """
+        Updates the AI's knowledge base by marking cells as mines or safes
+        based on the current knowledge.
+        """
+        knowledge_temp = self.knowledge.copy()  
+    
+        for sentence in knowledge_temp:
+            if len(sentence.cells) == sentence.count and sentence.count != 0:
+                for cell in sentence.cells.copy():
+                    self.mark_mine(cell)
+            elif sentence.count == 0:
+                for cell in sentence.cells.copy():
+                    self.mark_safe(cell)
+            if len(sentence.cells) == 0:
+                self.knowledge.remove(sentence)
+    def infer_new_sentences(self):
+        """
+        Infers new sentences from existing knowledge and adds them to the knowledge base.
+        """
+        knowledge_temp = self.knowledge.copy()
+        for sentence1 in knowledge_temp:
+            for sentence2 in knowledge_temp:
+                if sentence1 != sentence2 and sentence1.cells.issubset(sentence2.cells):
+                    new_cells = sentence2.cells - sentence1.cells
+                    new_count = sentence2.count - sentence1.count
+                    new_sentence = Sentence(new_cells, new_count)
+                    if new_sentence not in self.knowledge and len(new_cells) > 0:
+                        self.knowledge.append(new_sentence)
     def make_random_move(self):
         """
         Returns a move to make on the Minesweeper board.
@@ -202,4 +280,14 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+
+        for mine in self.mines:
+            if mine in self.cells:
+                self.cells.remove(mine)
+        for move in self.moves_made:
+            if move in self.cells:
+                self.cells.remove(move)        
+        if len(self.cells) == 0:
+            return None
+        return random.choice(list(self.cells))
+     
